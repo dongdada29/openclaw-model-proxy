@@ -49,7 +49,31 @@ export function rewritePath(req, provider) {
     result.provider.name = '智谱 AI (CN)';
     result.provider.providerId = 'zhipu';
   }
-  
+
+  // /zai-coding/* → 智谱 Coding Plan
+  if (targetPath.startsWith('/zai-coding')) {
+    result.path = targetPath.replace('/zai-coding', '/api/coding/paas/v4');
+    result.provider.host = 'open.bigmodel.cn';
+    result.provider.name = '智谱 AI (Coding Plan)';
+    result.provider.providerId = 'zhipu-coding';
+  }
+
+  // /minimax/* → MiniMax (Anthropic 兼容 API)
+  if (targetPath.startsWith('/minimax')) {
+    result.path = targetPath.replace('/minimax', '/anthropic');
+    result.provider.host = 'api.minimaxi.com';
+    result.provider.name = 'MiniMax';
+    result.provider.providerId = 'minimax';
+  }
+
+  // /claude-proxy/* → Claude Proxy (co.yes.vg)
+  if (targetPath.startsWith('/claude-proxy')) {
+    result.path = targetPath.replace('/claude-proxy', '/anthropic');
+    result.provider.host = 'co.yes.vg';
+    result.provider.name = 'Claude Proxy';
+    result.provider.providerId = 'claude-proxy';
+  }
+
   // /zai-global/* → z.ai 全球版
   if (targetPath.startsWith('/zai-global')) {
     result.path = targetPath.replace('/zai-global', '');
