@@ -324,28 +324,43 @@ ${Object.entries(stats.byProvider).map(([k, v]) =>
     md += `
 ### 请求 #${log.id}
 
-- **时间**: ${log.timestamp}
-- **供应商**: ${log.provider}
-- **模型**: ${log.model}
-- **状态**: ${log.status}
-- **耗时**: ${log.durationMs}ms
-- **流式**: ${log.isStreaming ? '是' : '否'}
-- **Token**: 输入 ${log.tokens.input} / 输出 ${log.tokens.output}
+| 字段 | 值 |
+|------|-----|
+| 时间 | ${log.timestamp} |
+| 供应商 | ${log.provider} |
+| 模型 | ${log.model || 'N/A'} |
+| 状态 | ${log.status} |
+| 耗时 | ${log.durationMs}ms |
+| 流式 | ${log.isStreaming ? '是' : '否'} |
+| Token 输入 | ${log.tokens.input} |
+| Token 输出 | ${log.tokens.output} |
 
 `;
+
+    // 系统提示词
+    if (log.details?.system) {
+      md += `#### System Prompt\n\n\`\`\`\n${log.details.system}\n\`\`\`\n\n`;
+    }
     
+    // 用户消息
     if (log.details?.messages?.length) {
       md += `#### Messages\n\n`;
       log.details.messages.forEach((msg, i) => {
         const content = typeof msg.content === 'string' 
-          ? (msg.content.length > 200 ? msg.content.slice(0, 200) + '...' : msg.content)
-          : '[complex]';
-        md += `**${msg.role}**: ${content}\n\n`;
+          ? msg.content 
+          : JSON.stringify(msg.content, null, 2);
+        md += `**${msg.role}**:\n\`\`\`\n${content}\n\`\`\`\n\n`;
       });
     }
     
+    // 工具列表
     if (log.details?.tools?.length) {
-      md += `#### Tools\n\n\`${log.details.tools.join('`, `')}\`\n\n`;
+      md += `#### Tools (${log.details.tools.length})\n\n`;
+      if (typeof log.details.tools[0] === 'string') {
+        md += `\`${log.details.tools.join('`, `')}\`\n\n`;
+      } else {
+        md += '```json\n' + JSON.stringify(log.details.tools, null, 2) + '\n```\n\n';
+      }
     }
     
     md += `---\n\n`;

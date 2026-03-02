@@ -26,10 +26,11 @@ const DEFAULT_CONFIG = {
   cacheSize: 1000,       // 最大缓存条目数
   cacheTtlMs: 60000,     // 缓存过期时间（毫秒）
   
-  // 脱敏配置
-  maxContentLength: 100,
-  maxSystemLength: 200,
-  redactApiKeys: true,
+  // 内容保存配置
+  saveFullContent: true,     // 保存完整内容（推荐开启）
+  maxContentLength: 100,     // 用户消息截断长度（saveFullContent=false 时生效）
+  maxSystemLength: 200,      // 系统提示词截断长度（saveFullContent=false 时生效）
+  redactApiKeys: true,       // 脱敏 API Key
   
   // 供应商配置
   providers: {},

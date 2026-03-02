@@ -12,6 +12,7 @@ export function sanitizeRequest(requestData) {
   const config = getConfig();
   const maxContent = config.get('maxContentLength');
   const maxSystem = config.get('maxSystemLength');
+  const saveFullContent = config.get('saveFullContent') ?? true; // 默认保存完整内容
   
   const details = {
     messages: null,
@@ -20,12 +21,21 @@ export function sanitizeRequest(requestData) {
     hasImages: false,
   };
   
-  // Messages: 截断长文本
+  // Messages: 保存完整或截断
   if (requestData.messages) {
-    details.messages = JSON.stringify(requestData.messages.map(m => ({
-      role: m.role,
-      content: truncate(m.content, maxContent),
-    })));
+    if (saveFullContent) {
+      // 保存完整消息
+      details.messages = JSON.stringify(requestData.messages.map(m => ({
+        role: m.role,
+        content: m.content,
+      })));
+    } else {
+      // 截断版本
+      details.messages = JSON.stringify(requestData.messages.map(m => ({
+        role: m.role,
+        content: truncate(m.content, maxContent),
+      })));
+    }
     
     // 检查是否有图片
     details.hasImages = requestData.messages.some(m => 
@@ -33,19 +43,25 @@ export function sanitizeRequest(requestData) {
     );
   }
   
-  // System: 截断
+  // System: 保存完整或截断
   if (requestData.system) {
     const sys = typeof requestData.system === 'string' 
       ? requestData.system 
       : JSON.stringify(requestData.system);
-    details.system = truncate(sys, maxSystem);
+    details.system = saveFullContent ? sys : truncate(sys, maxSystem);
   }
   
-  // Tools: 只保留名称
+  // Tools: 保存完整或只保留名称
   if (requestData.tools) {
-    details.tools = JSON.stringify(
-      requestData.tools.map(t => t.name || t.function?.name || t.type || 'unknown')
-    );
+    if (saveFullContent) {
+      // 保存完整工具定义
+      details.tools = JSON.stringify(requestData.tools);
+    } else {
+      // 只保留名称
+      details.tools = JSON.stringify(
+        requestData.tools.map(t => t.name || t.function?.name || t.type || 'unknown')
+      );
+    }
   }
   
   return details;
