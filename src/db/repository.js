@@ -5,10 +5,12 @@
  *   - 批量写入（带并发锁）
  *   - 预编译语句
  *   - 错误重试
+ *   - 查询缓存
  */
 import { Mutex } from 'async-mutex';
 import { getDatabase } from './index.js';
 import { getConfig } from '../config/index.js';
+import { getStatsCache, getLogsCache, invalidateStatsCache, invalidateLogsCache } from './cache.js';
 
 // 并发锁
 const mutex = new Mutex();
@@ -111,6 +113,11 @@ function flushBatchSync() {
     
     insertMany(batch);
     batchBuffer = [];  // 成功后清空
+    
+    // 使缓存失效（新数据已写入）
+    invalidateStatsCache();
+    invalidateLogsCache();
+    
     return { flushed: batch.length };
   } catch (e) {
     console.error('Batch insert error:', e.message);
@@ -128,9 +135,18 @@ export async function flushBatch() {
 }
 
 /**
- * 获取统计信息
+ * 获取统计信息（带缓存）
  */
 export function getStats(timeFilter = '') {
+  const cache = getStatsCache();
+  const cacheKey = `stats:${timeFilter || 'all'}`;
+  
+  // 尝试从缓存获取
+  const cached = cache.get(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
+  
   const db = getDatabase();
   
   // 动态构建带时间过滤的查询
@@ -159,13 +175,25 @@ export function getStats(timeFilter = '') {
     stats.byModel[row.model] = row.count;
   });
   
+  // 存入缓存
+  cache.set(cacheKey, stats);
+  
   return stats;
 }
 
 /**
- * 获取日志列表
+ * 获取日志列表（带缓存）
  */
 export function getLogs(limit = 100, offset = 0, provider = null) {
+  const cache = getLogsCache();
+  const cacheKey = `logs:${limit}:${offset}:${provider || 'all'}`;
+  
+  // 尝试从缓存获取
+  const cached = cache.get(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
+  
   const stmt = provider 
     ? getStatements().getLogsByProvider 
     : getStatements().getLogsWithDetails;
@@ -174,7 +202,7 @@ export function getLogs(limit = 100, offset = 0, provider = null) {
     ? [provider, limit, offset] 
     : [limit, offset];
   
-  return stmt.all(...params).map(row => ({
+  const logs = stmt.all(...params).map(row => ({
     id: row.id,
     timestamp: row.timestamp,
     provider: row.provider,
@@ -189,6 +217,11 @@ export function getLogs(limit = 100, offset = 0, provider = null) {
       tools: row.tools ? JSON.parse(row.tools) : [],
     } : null,
   }));
+  
+  // 存入缓存
+  cache.set(cacheKey, logs);
+  
+  return logs;
 }
 
 /**

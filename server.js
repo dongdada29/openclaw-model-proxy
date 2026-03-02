@@ -13,6 +13,7 @@ import http from 'http';
 
 import { initConfig, getConfig } from './src/config/index.js';
 import { initDatabase, closeDatabase } from './src/db/index.js';
+import { initCache } from './src/db/cache.js';
 import { flushBatch, getPendingCount } from './src/db/repository.js';
 import { handleProxyRequest } from './src/proxy/handler.js';
 import { handleApiRequest } from './src/api/routes.js';
@@ -20,6 +21,7 @@ import { handleApiRequest } from './src/api/routes.js';
 // 初始化
 const config = initConfig();
 const db = initDatabase();
+initCache();  // 初始化缓存
 
 // 创建 HTTP 服务器
 const server = http.createServer((req, res) => {
@@ -90,7 +92,7 @@ const dbPath = config.get('dbPath');
 server.listen(port, () => {
   console.log(`
 ╔══════════════════════════════════════════════════════════════════════════╗
-║         🔍 OpenClaw Model API Proxy (分层架构版 v1.2)                     ║
+║         🔍 OpenClaw Model API Proxy (分层架构版 v1.3)                     ║
 ╠══════════════════════════════════════════════════════════════════════════╣
 ║  Proxy:  http://localhost:${port}                                            ║
 ║  DB:     ${dbPath.padEnd(52)}║
@@ -103,12 +105,11 @@ server.listen(port, () => {
 ║    GET  /_cleanup?days=30                    清理旧数据                     ║
 ║    POST /_flush                              手动刷新缓冲区                 ║
 ╠══════════════════════════════════════════════════════════════════════════╣
-║  改进:                                                                    ║
+║  特性:                                                                    ║
 ║    ✅ 并发锁保护批量写入                                                   ║
-║    ✅ 定时器正确清理                                                       ║
-║    ✅ 优雅关闭流程                                                         ║
-║    ✅ 未捕获异常处理                                                       ║
+║    ✅ LRU 缓存加速查询                                                    ║
 ║    ✅ Prometheus metrics 端点                                              ║
+║    ✅ 优雅关闭流程                                                         ║
 ╚══════════════════════════════════════════════════════════════════════════╝
   `);
 });

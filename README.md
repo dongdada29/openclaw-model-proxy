@@ -103,6 +103,7 @@ curl http://localhost:3456/_stats
 - [x] SQLite 存储（WAL 模式）
 - [x] 批量写入（50 条/5 秒）
 - [x] 并发锁保护
+- [x] LRU 缓存加速查询
 - [x] API Key 脱敏
 - [x] 内容截断
 - [x] 供应商自动检测
@@ -110,6 +111,7 @@ curl http://localhost:3456/_stats
 - [x] Prometheus metrics 端点
 - [x] 单元测试（25 个）
 - [x] 配置文件支持（TOML）
+- [x] launchd 自动启动
 
 ## 📡 API 端点
 

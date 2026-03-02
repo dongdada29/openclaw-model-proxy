@@ -22,6 +22,10 @@ const DEFAULT_CONFIG = {
   flushInterval: 5000,
   dbPath: path.join(os.homedir(), '.openclaw-model-proxy', 'logs.db'),
   
+  // 缓存配置
+  cacheSize: 1000,       // 最大缓存条目数
+  cacheTtlMs: 60000,     // 缓存过期时间（毫秒）
+  
   // 脱敏配置
   maxContentLength: 100,
   maxSystemLength: 200,
