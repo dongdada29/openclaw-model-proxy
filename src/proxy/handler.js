@@ -128,10 +128,49 @@ function handleProxyResponse(id, proxyRes, clientRes, startTime, provider, req, 
         usage = responseData?.usage;
       } catch {}
     } else {
-      // 解析 SSE 流中的 usage
-      const usageMatch = fullBody.match(/"usage":\s*(\{[^}]+\})/);
-      if (usageMatch) {
-        try { usage = JSON.parse(usageMatch[1]); } catch {}
+      // 解析 SSE 流中的 usage（多种格式）
+      // 格式1: "usage": {"prompt_tokens": 10, "completion_tokens": 20}
+      // 格式2: "usage": {"input_tokens": 10, "output_tokens": 20}
+      // 格式3: data: [DONE] 前的最后一个 data 块
+      
+      // 尝试匹配所有 usage 格式
+      const usagePatterns = [
+        /"usage":\s*(\{[^}]+\})/g,
+        /"prompt_tokens":\s*(\d+).*?"completion_tokens":\s*(\d+)/,
+        /"input_tokens":\s*(\d+).*?"output_tokens":\s*(\d+)/,
+      ];
+      
+      // 尝试从最后一个 data 块解析
+      const lastDataMatch = fullBody.match(/data:\s*(\{.*?\})\s*$/);
+      if (lastDataMatch) {
+        try {
+          const lastData = JSON.parse(lastDataMatch[1]);
+          if (lastData.usage) {
+            usage = lastData.usage;
+          }
+        } catch {}
+      }
+      
+      // 如果没找到，尝试全局搜索
+      if (!usage) {
+        for (const pattern of usagePatterns) {
+          const match = fullBody.match(pattern);
+          if (match) {
+            try {
+              if (match[2]) {
+                // 格式2/3: 捕获组
+                usage = {
+                  prompt_tokens: parseInt(match[1]),
+                  completion_tokens: parseInt(match[2]),
+                };
+              } else {
+                // 格式1: JSON 对象
+                usage = JSON.parse(match[1]);
+              }
+              break;
+            } catch {}
+          }
+        }
       }
     }
 
