@@ -2,7 +2,7 @@
  * API 层 - RESTful API 路由
  */
 import { getConfig } from '../config/index.js';
-import { flushBatch, getStats, getLogs, cleanupOldLogs } from '../db/repository.js';
+import { flushBatch, getStats, getLogs, cleanupOldLogs, exportToJsonl, exportToMarkdown } from '../db/repository.js';
 import { getProviderList } from '../providers/index.js';
 
 /**
@@ -23,6 +23,8 @@ export function handleApiRequest(req, res) {
     'GET /_cleanup': () => handleCleanup(url, res),
     'POST /_flush': () => handleFlush(res),
     'GET /_metrics': () => handleMetrics(res),
+    'GET /_export/jsonl': () => handleExportJsonl(url, res),
+    'GET /_export/markdown': () => handleExportMarkdown(url, res),
   };
 
   const routeKey = `${req.method} ${path}`;
@@ -169,4 +171,32 @@ function handleMetrics(res) {
   
   res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end(metrics.join('\n') + '\n');
+}
+
+/**
+ * GET /_export/jsonl - 导出为 JSONL 格式
+ */
+function handleExportJsonl(url, res) {
+  const limit = parseInt(url.searchParams.get('limit')) || 1000;
+  const result = exportToJsonl(limit);
+  
+  res.writeHead(200, { 
+    'Content-Type': 'application/x-ndjson',
+    'Content-Disposition': `attachment; filename="requests-${new Date().toISOString().slice(0,10)}.jsonl"`
+  });
+  res.end(result.content);
+}
+
+/**
+ * GET /_export/markdown - 导出为 Markdown 格式
+ */
+function handleExportMarkdown(url, res) {
+  const limit = parseInt(url.searchParams.get('limit')) || 100;
+  const md = exportToMarkdown(limit);
+  
+  res.writeHead(200, { 
+    'Content-Type': 'text/markdown; charset=utf-8',
+    'Content-Disposition': `attachment; filename="report-${new Date().toISOString().slice(0,10)}.md"`
+  });
+  res.end(md);
 }

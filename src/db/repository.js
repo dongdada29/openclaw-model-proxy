@@ -248,3 +248,108 @@ export function cleanupOldLogs(days = null) {
 export function getPendingCount() {
   return batchBuffer.length;
 }
+
+/**
+ * 导出日志为 JSONL 格式
+ */
+export function exportToJsonl(limit = 1000) {
+  const db = getDatabase();
+  const sql = `
+    SELECT r.*, d.messages, d.system, d.tools, d.has_images 
+    FROM requests r 
+    LEFT JOIN request_details d ON r.id = d.request_id 
+    ORDER BY r.timestamp DESC 
+    LIMIT ?
+  `;
+  
+  const rows = db.prepare(sql).all(limit);
+  const lines = rows.map(row => JSON.stringify({
+    id: row.id,
+    timestamp: row.timestamp,
+    provider: row.provider,
+    model: row.model,
+    method: row.method,
+    path: row.path,
+    status: row.status,
+    durationMs: row.duration_ms,
+    isStreaming: !!row.is_streaming,
+    tokens: { input: row.input_tokens, output: row.output_tokens },
+    details: row.messages ? {
+      messages: JSON.parse(row.messages),
+      system: row.system,
+      tools: row.tools ? JSON.parse(row.tools) : [],
+      hasImages: !!row.has_images,
+    } : null,
+  }));
+  
+  return { 
+    exported: rows.length, 
+    content: lines.join('\n') + '\n'
+  };
+}
+
+/**
+ * 导出日志为 Markdown 格式
+ */
+export function exportToMarkdown(limit = 100) {
+  const stats = getStats();
+  const logs = getLogs(limit, 0);
+  
+  let md = `# Model Proxy 请求日志报告
+
+**生成时间**: ${new Date().toISOString()}
+
+---
+
+## 统计概览
+
+- **总请求数**: ${stats.totalRequests}
+- **Token 使用**: 输入 ${stats.totalTokens.input} / 输出 ${stats.totalTokens.output}
+
+### 供应商分布
+
+| 供应商 | 请求数 | 输入Token | 输出Token |
+|--------|:------:|:---------:|:---------:|
+${Object.entries(stats.byProvider).map(([k, v]) => 
+  `| ${k} | ${v.requests} | ${v.inputTokens} | ${v.outputTokens} |`
+).join('\n')}
+
+---
+
+## 请求详情
+
+`;
+
+  logs.forEach(log => {
+    md += `
+### 请求 #${log.id}
+
+- **时间**: ${log.timestamp}
+- **供应商**: ${log.provider}
+- **模型**: ${log.model}
+- **状态**: ${log.status}
+- **耗时**: ${log.durationMs}ms
+- **流式**: ${log.isStreaming ? '是' : '否'}
+- **Token**: 输入 ${log.tokens.input} / 输出 ${log.tokens.output}
+
+`;
+    
+    if (log.details?.messages?.length) {
+      md += `#### Messages\n\n`;
+      log.details.messages.forEach((msg, i) => {
+        const content = typeof msg.content === 'string' 
+          ? (msg.content.length > 200 ? msg.content.slice(0, 200) + '...' : msg.content)
+          : '[complex]';
+        md += `**${msg.role}**: ${content}\n\n`;
+      });
+    }
+    
+    if (log.details?.tools?.length) {
+      md += `#### Tools\n\n\`${log.details.tools.join('`, `')}\`\n\n`;
+    }
+    
+    md += `---\n\n`;
+  });
+  
+  return md;
+}

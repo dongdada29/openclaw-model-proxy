@@ -92,7 +92,7 @@ const dbPath = config.get('dbPath');
 server.listen(port, () => {
   console.log(`
 ╔══════════════════════════════════════════════════════════════════════════╗
-║         🔍 OpenClaw Model API Proxy (分层架构版 v1.3)                     ║
+║         🔍 OpenClaw Model API Proxy (分层架构版 v1.3.1)                   ║
 ╠══════════════════════════════════════════════════════════════════════════╣
 ║  Proxy:  http://localhost:${port}                                            ║
 ║  DB:     ${dbPath.padEnd(52)}║
@@ -102,6 +102,8 @@ server.listen(port, () => {
 ║    GET  /_logs?limit=100&provider=zai        日志查询                      ║
 ║    GET  /_providers                          供应商列表                     ║
 ║    GET  /_metrics                            Prometheus 指标                ║
+║    GET  /_export/jsonl?limit=1000            导出 JSONL                    ║
+║    GET  /_export/markdown?limit=100          导出 Markdown 报告            ║
 ║    GET  /_cleanup?days=30                    清理旧数据                     ║
 ║    POST /_flush                              手动刷新缓冲区                 ║
 ╠══════════════════════════════════════════════════════════════════════════╣
@@ -109,6 +111,7 @@ server.listen(port, () => {
 ║    ✅ 并发锁保护批量写入                                                   ║
 ║    ✅ LRU 缓存加速查询                                                    ║
 ║    ✅ Prometheus metrics 端点                                              ║
+║    ✅ JSONL/Markdown 导出                                                  ║
 ║    ✅ 优雅关闭流程                                                         ║
 ╚══════════════════════════════════════════════════════════════════════════╝
   `);
