@@ -90,7 +90,7 @@ const dbPath = config.get('dbPath');
 server.listen(port, () => {
   console.log(`
 ╔══════════════════════════════════════════════════════════════════════════╗
-║         🔍 OpenClaw Model API Proxy (分层架构版 v1.1)                     ║
+║         🔍 OpenClaw Model API Proxy (分层架构版 v1.2)                     ║
 ╠══════════════════════════════════════════════════════════════════════════╣
 ║  Proxy:  http://localhost:${port}                                            ║
 ║  DB:     ${dbPath.padEnd(52)}║
@@ -99,6 +99,7 @@ server.listen(port, () => {
 ║    GET  /_stats?period=hour|day|week|month   统计信息                      ║
 ║    GET  /_logs?limit=100&provider=zai        日志查询                      ║
 ║    GET  /_providers                          供应商列表                     ║
+║    GET  /_metrics                            Prometheus 指标                ║
 ║    GET  /_cleanup?days=30                    清理旧数据                     ║
 ║    POST /_flush                              手动刷新缓冲区                 ║
 ╠══════════════════════════════════════════════════════════════════════════╣
@@ -107,6 +108,7 @@ server.listen(port, () => {
 ║    ✅ 定时器正确清理                                                       ║
 ║    ✅ 优雅关闭流程                                                         ║
 ║    ✅ 未捕获异常处理                                                       ║
+║    ✅ Prometheus metrics 端点                                              ║
 ╚══════════════════════════════════════════════════════════════════════════╝
   `);
 });

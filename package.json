@@ -1,6 +1,6 @@
 {
   "name": "openclaw-model-proxy",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "description": "Transparent proxy for LLM API calls with logging and analytics",
   "main": "server.js",

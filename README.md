@@ -106,7 +106,8 @@ curl http://localhost:3456/_stats
 - [x] API Key 脱敏
 - [x] 内容截断
 - [x] 供应商自动检测
-- [x] REST API（6 个端点）
+- [x] REST API（7 个端点）
+- [x] Prometheus metrics 端点
 - [x] 单元测试（25 个）
 - [x] 配置文件支持（TOML）
 
@@ -118,6 +119,7 @@ curl http://localhost:3456/_stats
 | `GET /_stats` | 统计信息 |
 | `GET /_logs` | 日志查询 |
 | `GET /_providers` | 供应商列表 |
+| `GET /_metrics` | Prometheus 指标 |
 | `GET /_cleanup` | 清理旧数据 |
 | `POST /_flush` | 手动刷新 |
 

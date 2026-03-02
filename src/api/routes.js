@@ -22,6 +22,7 @@ export function handleApiRequest(req, res) {
     'GET /_providers': () => handleProviders(res),
     'GET /_cleanup': () => handleCleanup(url, res),
     'POST /_flush': () => handleFlush(res),
+    'GET /_metrics': () => handleMetrics(res),
   };
 
   const routeKey = `${req.method} ${path}`;
@@ -118,4 +119,54 @@ function buildTimeFilter(period) {
     month: `AND timestamp > strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-30 days')`,
   };
   return filters[period] || filters.day;
+}
+
+/**
+ * GET /_metrics - Prometheus 格式指标
+ */
+function handleMetrics(res) {
+  const stats = getStats(buildTimeFilter('hour'));
+  
+  // Prometheus 格式
+  const metrics = [];
+  
+  // 总请求数
+  metrics.push(`# HELP model_proxy_requests_total Total number of proxied requests`);
+  metrics.push(`# TYPE model_proxy_requests_total counter`);
+  metrics.push(`model_proxy_requests_total ${stats.totalRequests}`);
+  
+  // 各供应商请求数
+  metrics.push(`# HELP model_proxy_provider_requests Requests per provider`);
+  metrics.push(`# TYPE model_proxy_provider_requests gauge`);
+  for (const [provider, data] of Object.entries(stats.byProvider)) {
+    metrics.push(`model_proxy_provider_requests{provider="${provider}"} ${data.requests}`);
+  }
+  
+  // Token 使用量
+  metrics.push(`# HELP model_proxy_tokens_total Total tokens processed`);
+  metrics.push(`# TYPE model_proxy_tokens_total counter`);
+  metrics.push(`model_proxy_tokens_total{type="input"} ${stats.totalTokens.input}`);
+  metrics.push(`model_proxy_tokens_total{type="output"} ${stats.totalTokens.output}`);
+  
+  // 各供应商 Token 使用
+  metrics.push(`# HELP model_proxy_provider_tokens Tokens per provider`);
+  metrics.push(`# TYPE model_proxy_provider_tokens gauge`);
+  for (const [provider, data] of Object.entries(stats.byProvider)) {
+    metrics.push(`model_proxy_provider_tokens{provider="${provider}",type="input"} ${data.inputTokens}`);
+    metrics.push(`model_proxy_provider_tokens{provider="${provider}",type="output"} ${data.outputTokens}`);
+  }
+  
+  // 进程信息
+  metrics.push(`# HELP model_proxy_info Proxy server info`);
+  metrics.push(`# TYPE model_proxy_info gauge`);
+  metrics.push(`model_proxy_info{version="1.1.0"} 1`);
+  
+  // 运行时间
+  const uptime = process.uptime();
+  metrics.push(`# HELP model_proxy_uptime_seconds Server uptime in seconds`);
+  metrics.push(`# TYPE model_proxy_uptime_seconds gauge`);
+  metrics.push(`model_proxy_uptime_seconds ${Math.floor(uptime)}`);
+  
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end(metrics.join('\n') + '\n');
 }
