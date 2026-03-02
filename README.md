@@ -48,34 +48,46 @@ curl http://localhost:3456/_stats
 ```json
 {
   "id": 1,
-  "timestamp": "2026-03-01T04:35:00.000Z",
-  "method": "POST",
-  "path": "/v1/messages",
-  "targetApi": "anthropic",
-  "body": {
-    "model": "claude-3-5-sonnet-20241022",
-    "max_tokens": 4096,
-    "messages": [
-      {
-        "role": "user",
-        "content": "Hello!"
-      }
-    ],
-    "system": "You are a helpful assistant.",
-    "tools": [...]
-  },
-  "response": {
-    "status": 200,
-    "duration": 1234,
-    "body": {
-      "content": [...],
-      "usage": {
-        "input_tokens": 100,
-        "output_tokens": 50
-      }
-    }
+  "timestamp": "2026-03-02T...",
+  "provider": "openai",
+  "model": "gpt-4o",
+  "messages": [...],
+  "response": {...},
+  "usage": {
+    "input_tokens": 100,
+    "output_tokens": 50
   }
 }
+```
+
+## 🏗️ 架构
+
+```
+┌─────────────┐
+│   OpenClaw  │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────────────────────────┐
+│        Model Proxy (port 3456)       │
+│  ┌─────────────────────────────────┐ │
+│  │ 供应商检测                       │ │
+│  │ • X-Provider 头                 │ │
+│  │ • API Key 前缀                   │ │
+│  │ • 路径模式                       │ │
+│  └─────────────────────────────────┘ │
+│  ┌─────────────────────────────────┐ │
+│  │ SQLite 存储                      │ │
+│  │ • 批量写入（50 条/5 秒）         │ │
+│  │ • WAL 模式                       │ │
+│  │ • 30 天保留                      │ │
+│  └─────────────────────────────────┘ │
+└─────────────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────┐
+│  LLM APIs (Anthropic/OpenAI/智谱/...) │
+└─────────────────────────────────────┘
 ```
 
 ## 🎯 使用场景
@@ -85,17 +97,49 @@ curl http://localhost:3456/_stats
 3. **审计** - 记录所有模型调用
 4. **成本分析** - 统计 API 费用
 
-## 🔧 高级功能（TODO）
+## ✅ 已实现功能
 
-- [ ] 保存到文件/数据库
-- [ ] WebSocket 实时推送
-- [ ] Web 仪表板
-- [ ] 成本计算
-- [ ] 敏感信息过滤
-- [ ] 请求修改/注入
+- [x] 透明代理（支持 Anthropic/OpenAI/z.ai/智谱/MiniMax）
+- [x] SQLite 存储（WAL 模式）
+- [x] 批量写入（50 条/5 秒）
+- [x] 并发锁保护
+- [x] API Key 脱敏
+- [x] 内容截断
+- [x] 供应商自动检测
+- [x] REST API（6 个端点）
+- [x] 单元测试（25 个）
+- [x] 配置文件支持（TOML）
+
+## 📡 API 端点
+
+| 端点 | 说明 |
+|------|------|
+| `GET /_health` | 健康检查 |
+| `GET /_stats` | 统计信息 |
+| `GET /_logs` | 日志查询 |
+| `GET /_providers` | 供应商列表 |
+| `GET /_cleanup` | 清理旧数据 |
+| `POST /_flush` | 手动刷新 |
+
+## 🔗 相关项目
+
+| 项目 | 说明 |
+|------|------|
+| [openclaw-watchdog](https://github.com/dongdada29/openclaw-watchdog) | 自动更新 + 故障保护 |
+| [OpenClaw](https://github.com/openclaw/openclaw) | AI Agent 框架 |
 
 ## ⚠️ 注意事项
 
 - 仅用于开发/调试
 - 不要在生产环境使用
-- 日志可能包含敏感信息
+- 日志可能包含敏感信息（已脱敏）
+
+## 📄 文档
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - 架构设计
+- [接入指南](../openclaw-watchdog/docs/PROXY_INTEGRATION_GUIDE.md) - OpenClaw 接入
+- [测试用例](../openclaw-watchdog/docs/TEST_CASES.md) - 测试清单
+
+## 📜 License
+
+MIT
